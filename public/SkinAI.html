@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkinAi</title>
+    <link href="https://fonts.googleapis.com/css?family=Lato&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #416f7e;
+            color: #000000;
+            font-family: 'Lato', sans-serif;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #515255;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        header .logo {
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            text-decoration: overline;
+        }
+
+        nav a {
+            color: white;
+            margin-left: 20px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        .main-content {
+            max-width: 800px;
+            margin: 60px auto;
+            padding: 40px;
+            background-color: #4ea196;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .main-content h1 {
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+
+        .main-content p {
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        form {
+            margin-top: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        input[type="file"] {
+            color: white;
+        }
+
+        button {
+            background-color: #10173f;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0b08ac;
+        }
+
+        .divider {
+            margin: 40px auto;
+            width: 60%;
+            border: 0;
+            height: 64px;
+            opacity: 0;
+            background: #ffffff50; /* semi-transparent white */
+            border-radius: 5px;
+}
+
+
+        @media (max-width: 600px) {
+            .form-group {
+                flex-direction: column;
+            }
+
+            nav a {
+                margin-left: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" class="logo">SkinAi</a>
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </nav>
+    </header>
+
+    <div class="main-content">
+        <h1>SkinAi</h1>
+        <p><em>Analyze your skin condition with AI</em></p>
+        <p>Upload an image of your skin and get instant analysis.</p>
+        <p>Our AI model will analyze the image and provide feedback on your skin condition.</p>
+        <p>Please ensure the image is clear and well-lit for best results.</p>
+
+        <hr class="divider">
+
+        <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="file" name="image" accept="image/*" required>
+                <button type="submit">Upload</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Analysis Result: ' + result.message);
+                } else {
+                    alert('Error uploading image.');
+                }
+            } catch (error) {
+                alert('An error occurred: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
