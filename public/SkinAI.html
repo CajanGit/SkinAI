@@ -158,7 +158,7 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert('Analysis Result: ' + result.message);
+                    alert(`Diagnosis: ${result.label}\nConfidence: ${result.confidence}`);
                 } else {
                     alert('Error uploading image.');
                 }
