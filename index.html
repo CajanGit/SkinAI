@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin Condition Classifier</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .upload-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        #fileInput {
+            display: none;
+        }
+        .upload-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .upload-btn:hover {
+            background-color: #2980b9;
+        }
+        #imagePreview {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 20px auto;
+            display: none;
+        }
+        #results {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        .model-result {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .model-title {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        .condition {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+        }
+        .confidence-bar {
+            height: 20px;
+            background-color: #bdc3c7;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        .confidence-level {
+            height: 100%;
+            background-color: #2ecc71;
+            width: 0%;
+            transition: width 1s;
+        }
+        .verdict {
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 15px;
+            font-size: 18px;
+        }
+        .loading {
+            display: none;
+            margin: 20px;
+            text-align: center;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Skin Condition Classifier</h1>
+    
+    <div class="upload-container">
+        <input type="file" id="fileInput" accept="image/*">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose Image</button>
+        <p id="fileName"></p>
+        
+        <img id="imagePreview" alt="Preview">
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Analyzing image...</p>
+        </div>
+        
+        <button id="analyzeBtn" class="upload-btn" style="display: none;" onclick="analyzeImage()">Analyze</button>
+    </div>
+    
+    <div id="results">
+        <h2>Results</h2>
+        <div id="modelResults"></div>
+    </div>
+
+    <script>
+        // Display selected image
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = file.name;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    
+                    document.getElementById('analyzeBtn').style.display = 'inline-block';
+                    document.getElementById('results').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Send image to Flask backend
+        function analyzeImage() {
+            const fileInput = document.getElementById('fileInput');
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.querySelector('.loading');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select an image first');
+                return;
+            }
+
+            // Show loading spinner
+            loadingDiv.style.display = 'block';
+            analyzeBtn.disabled = true;
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading spinner
+                loadingDiv.style.display = 'none';
+                analyzeBtn.disabled = false;
+                
+                // Display results
+                resultsDiv.style.display = 'block';
+                displayAllModelResults(data);
+            })
+            .catch(error => {
+                loadingDiv.style.display = 'none';
+                analyzeBtn.disabled = false;
+                alert('Error: ' + error.message);
+            });
+        }
+
+        // Display results for all models
+        function displayAllModelResults(data) {
+            const modelResultsDiv = document.getElementById('modelResults');
+            modelResultsDiv.innerHTML = '';
+            
+            // Add the uploaded image at the top
+            const fileInput = document.getElementById('fileInput');
+            modelResultsDiv.innerHTML = `
+                <img src="${URL.createObjectURL(fileInput.files[0])}" alt="Uploaded Image" style="max-width: 300px; margin-bottom: 20px;">
+            `;
+            
+            // Create a result card for each model
+            for (const [modelName, result] of Object.entries(data.results)) {
+                const modelDiv = document.createElement('div');
+                modelDiv.className = 'model-result';
+                
+                let conditionsHTML = '';
+                for (const [condition, percentage] of Object.entries(result.percentages)) {
+                    conditionsHTML += `
+                        <div class="condition">
+                            <div>${condition.replace('_', ' ').toUpperCase()}</div>
+                            <div>${(percentage * 100).toFixed(1)}%</div>
+                            <div class="confidence-bar">
+                                <div class="confidence-level" style="width: ${percentage * 100}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                modelDiv.innerHTML = `
+                    <h3 class="model-title">${modelName}</h3>
+                    ${conditionsHTML}
+                    <div class="verdict">
+                        FINAL VERDICT: ${result.final_label.replace('_', ' ').toUpperCase()} 
+                        (${(result.confidence * 100).toFixed(1)}% confidence)
+                    </div>
+                `;
+                
+                modelResultsDiv.appendChild(modelDiv);
+            }
+        }
+    </script>
+</body>
+</html>
